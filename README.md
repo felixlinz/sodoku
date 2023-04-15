@@ -1,0 +1,2 @@
+# sodoku
+my sodoku solver
