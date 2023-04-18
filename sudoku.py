@@ -165,7 +165,7 @@ class Board:
 
 
 def main():
-    sudoku = Board("sudoku2.csv")
+    sudoku = Board("sudoku.csv")
     while len(sudoku.unsolved) != 0:
         if check_correctness(sudoku):
             solve(sudoku).printboard()
