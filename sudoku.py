@@ -54,7 +54,7 @@ class Board:
                     thisSlist.append(row["value"])
         return thisSlist
 
-    def column(self, column):  
+    def column(self, column):
         # returns a list of all the numbers in a given column
         return [row[column]["value"] for row in self.sodictionary]
 
@@ -90,7 +90,7 @@ class Board:
         numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]  # all sudoku numbers
 
         for row in self.sodictionary:
-            for dict in row:  
+            for dict in row:
                 a = dict["row"]
                 b = dict["column"]
                 possible_solutions = list(
@@ -99,10 +99,11 @@ class Board:
                     - set(self.column(b))
                     - set(self.square(a, b))
                 )
-                
+
                 dict["possible_solutions"] = possible_solutions  # appends updated possible_solutions onto each field
 
-    def update(self, row, column, value): # use this to change specific cells of the board, automatically regenerates new possible_solutions for every cell
+    def update(self, row, column, value):
+        # use this to change specific cells of the board, automatically regenerates new possible_solutions for every cell
         self.sodictionary[row][column]["value"] = value
         self.sodictionary[row][column]["tried"].add(value)
         self.make_possible_solutions()
@@ -126,6 +127,8 @@ class Board:
                 del self.solved[e:]
 
     def printboard(self, aspect="value"):
+        # prints the board, if you don't intend to print the values of the cell,
+        # you can specify the aspect as "square", "row", "column", "possible_solutions" or "tried"
         GREEN = fg("green")
         RED = fg("red")
         RESET = attr("reset")
@@ -153,11 +156,23 @@ class Board:
         print(vert, space, vert, space, vert, space, vert)
         print(f"{RED}╚═══════════════╩═══════════════╩═══════════════╝{RESET}")
 
+    def save(self):
+        with open("saved_sudoku.csv", "w") as board:
+            writer = csv.writer(board)
+            for row in self.sodictionary:
+                writer.writerow([item["value"] for item in row])
+
+
 
 def main():
-    filename = "sudoku.csv"
-    sudoku = Board(filename)
-    solve(sudoku).printboard()
+    sudoku = Board("sudoku2.csv")
+    while sudoku.unsolved != []:
+        if check_correctness(sudoku):
+            solve(sudoku).printboard()
+            break
+        else:
+            print("Specified Sudoku Board didn't add up, try again")
+            sudoku = Board(getsudoku())
 
 
 def getsudoku():
@@ -187,8 +202,8 @@ def solve(sudoku):
         Sudoku: The solved Sudoku object.
 
     """
-    todo = len(sudoku.unsolved)
-    while len(sudoku.solved) < todo:  # Loops through whole sudoku
+    unsolved_length = len(sudoku.unsolved)
+    while len(sudoku.solved) < unsolved_length:  # Loops through whole sudoku
         for i, row in enumerate(sudoku.sodictionary):
             for e, field in enumerate(row):
                 if field["value"] == 0:
@@ -199,10 +214,10 @@ def solve(sudoku):
                         flag = True
                         break
                     else:
-                        try: 
+                        try:
                             altnode = sudoku.frontier.pop()
                         except IndexError:
-                            raise EmptyFrontierError("No Possible Solution, perhaps check you Input")
+                            raise IndexError("No Possible Solution, perhaps check your input")
                         lastrow, lastcolumn = altnode["row"], altnode["column"]
                         altvalue = altnode["value"]
                         sudoku.nukeexplored(lastrow, lastcolumn)
@@ -231,6 +246,26 @@ def nodes(sudoku, row, column):
         return True
     else:
         return False
+
+def check_correctness(sudoku):
+    for row in sudoku.sodictionary:
+        for item in row:
+            if len(item["possible_solutions"]) == 0 and item["value"] == 0:
+                return False
+    for i in range(9):
+        for value in sudoku.row(i):
+            if value != 0 and sudoku.row(i).count(value)>1:
+                return False
+    for i in range(9):
+        for e in range(9):
+            for value in sudoku.square(i,e):
+                if value != 0 and sudoku.square(i,e).count(value)>1:
+                    return False
+    for i in range(9):
+        for value in sudoku.column(i):
+            if value != 0 and sudoku.column(i).count(value)>1:
+                return False
+    return True
 
 
 if __name__ == "__main__":
