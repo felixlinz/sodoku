@@ -231,6 +231,7 @@ def solve(sudoku):
     return sudoku
 
 
+
 def nodes(sudoku, row, column):
     nodeslist = []
     # optionen = list(set(sudoku.sodictionary[row][column]["possible_solutions"]) - set(sudoku.sodictionary[row][column]["tried"]))
