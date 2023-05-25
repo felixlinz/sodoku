@@ -1,6 +1,6 @@
 import csv
 import copy
-from colored import fg, bg, attr
+from colored import fg, attr
 from functools import wraps
 import time
 
@@ -16,6 +16,10 @@ class Board:
         self.frontier = []
 
     def delist(self, board):
+        """
+        generates a version of the board that isn't nested lists
+        not suitable for finding cells with coordinates but easier to iterate
+        """
         nonestlist = []
         for row in board:
             nonestlist.extend(row)
@@ -23,7 +27,9 @@ class Board:
 
 
     def boardmaker(self, file):  
-        # reads csv file of unsolved sudoku, creates list, listed dicts or list of listed dicts
+        """
+        reads csv file of unsolved sudoku, creates list, listed dicts or list of listed dicts
+        """
         board = []  # creating containers for all use cases
         with open(file, "r") as rowfield:
             reader = csv.reader(rowfield)
@@ -34,41 +40,52 @@ class Board:
                 board.append(ri)
         return board  # returns a list of dictionaries
     
-    def whichsquare(self, row, column):  # detirmes which of the 9 squares a cell is based in, based on row and colummn input
+    def whichsquare(self, row, column):  
+        """
+        detirmes which of the 9 squares a cell is based in, based on row and colummn input
+        """
         square_row = (row// 3) * 3
         square_column = (column // 3) * 3
         return square_row // 3 * 3 + square_column // 3
     
-    def square(self, square):  # returns list of values for square in question
-        thisSlist = []
+    def square(self, square):  
+        """
+        returns list of values for square in question
+        """
+        whole_square = []
         for cell in self.boardlist:
-                # loops through all listed dictionaries
-            if (
-                cell.square == square
-            ):  # checks if number ist part of square in question
-                thisSlist.append(cell.value)
-        return thisSlist
+            if (cell.square == square):  
+                whole_square.append(cell.value)
+        return whole_square
 
     def column(self, column):
-        # returns a list of all the numbers in a given column
+        """
+        returns a list of all the values in a given column
+        """
         return [row[column].value for row in self.board]
 
     def row(self, row):
-        # returns a list of all the numbers in a given row
+        """
+        returns a list of all the values in a given row
+        """
         return [element.value for element in self.board[row]]
 
     def unsolvedd(self):
-        # returns a list of all the currently unsolved cells, in listed dictionaries
+        """
+        returns a list of all the currently unsolved cells, in listed dictionaries
+        """
         return [
-            item
+            cell
             for row in self.board
-            for item in row
-            if item.value == 0
+            for cell in row
+            if cell.value == 0
         ]
 
-    def make_possible_solutions(
-        self,
-    ):  # iterates over a given list of listed dictionaries and redetermines all the possibillities for each empty square
+    def make_possible_solutions(self,): 
+        """ 
+        iterates over a given list of listed Cells and 
+        redetermines all the possibillities for each empty square
+        """
         numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]  # all sudoku numbers
 
         for row in self.board:
@@ -85,19 +102,26 @@ class Board:
                 cell.options = possible_solutions  # appends updated possible_solutions onto each field
 
     def update(self, row, column, value):
-        # use this to change specific cells of the board, automatically regenerates new possible_solutions for every cell
+        """
+        use this to change specific cells of the board, 
+        automatically regenerates new possible_solutions for every cell
+        """
         self.board[row][column].value = value
         self.make_possible_solutions()
         self.unsolved = self.unsolvedd()
 
     def nukeexplored(self, row, column):
-        # resets the initial unsolved fields that succed a cell, inputted via row, column
+        """
+        resets the initial unsolved fields that succed a cell, inputted via row, column
+        """
+        # resetting the board
         for node in self.solved:
             if node.row == row:
                 if node.column > column:
                     self.board[node.row][node.column].value = 0
             elif node.row > row:
                 self.board[node.row][node.column].value = 0
+        # resetting the solved list
         for e, node in enumerate(self.solved):
             if node.row == row:
                 if node.column >= column:
@@ -107,8 +131,9 @@ class Board:
                 del self.solved[e:]
 
     def printboard(self):
-        # prints the board, if you don't intend to print the values of the cell,
-        # you can specify the aspect as "square", "row", "column", "possible_solutions" or "tried"
+        """
+        prints the board, initially unsolved cells are green
+        """
         GREEN = fg("green")
         RED = fg("red")
         RESET = attr("reset")
@@ -123,7 +148,7 @@ class Board:
             print(vert, space, vert, space, vert, space, vert)
             print(vert, end="")
             for e, number in enumerate(row):
-                if int(self._board[i][e].value) == 0:
+                if self._board[i][e].value == 0:
                     print(f"{GREEN}  {number}  {RESET}", end="")
                 else:
                     print(f"  {number}  ", end="")
@@ -138,6 +163,9 @@ class Board:
 
                 
 class Cell:
+    """
+    Object in which all the Data regarding a single cell is stored
+    """
     def __init__(self, value, row, column, square, options = None):
         self.value = int(value)  
         self.row = int(row)     
@@ -158,12 +186,9 @@ def timeit(func):
         return result
     return timeit_wrapper
 
-@timeit
-def creation(filename):
-    return Board(filename)
 
 def main():
-    sudoku = creation("sudoku.csv")
+    sudoku = Board("sudoku.csv")
     while len(sudoku.unsolved) != 0:
         if check_correctness(sudoku):
             solve(sudoku).printboard()
@@ -205,6 +230,7 @@ def solve(sudoku):
 
     """
     unsolved_length = len(sudoku.unsolved)
+    # sorts the order in which the algo explores the states by length of options
     sudoku.unsolved.sort(key = lambda x: len(x.options))
     while len(sudoku.solved) < unsolved_length:  # Loops through whole sudoku
         for cell in sudoku.unsolved:
@@ -243,9 +269,11 @@ def nodes(sudoku, row, column):
     """
     nodeslist = []
     if len(sudoku.board[row][column].options) > 0:
-        # checking for length is significantly quicker that checking with logic for some reason
+        # checking for length is significantly quicker than checking with logic for some reason
         for option in sudoku.board[row][column].options:
             possibility = Cell(option, row, column,sudoku.board[row][column].square) 
+            # don't remember why but this is very important
+            # figure out at pleeaaase
             nodeslist.insert(0, possibility)
         sudoku.frontier.extend(nodeslist)
         return True
@@ -253,19 +281,27 @@ def nodes(sudoku, row, column):
         return False
 
 def check_correctness(sudoku):
+    """
+    checks if an inputted Sudoku adds up 
+    """
     for row in sudoku.board:
         for item in row:
+            # if something is unsolved and has no possible solution 
+            # returns false
             if len(item.options) == 0 and item.value == 0:
                 return False
     for i in range(9):
+        # if a value exists more than once in a row
         for value in sudoku.row(i):
             if value != 0 and sudoku.row(i).count(value)>1:
                 return False
     for i in range(9):
+        # if a value exists more than once in a square
         for value in sudoku.square(i):
             if value != 0 and sudoku.square(i).count(value)>1:
                 return False
     for i in range(9):
+        # if a value exists more than once in a column
         for value in sudoku.column(i):
             if value != 0 and sudoku.column(i).count(value)>1:
                 return False
