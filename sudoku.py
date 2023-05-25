@@ -1,20 +1,16 @@
 import csv
+import copy
 from colored import fg, bg, attr
-
+from functools import wraps
+import time
 
 class Board:
     def __init__(self, file):
         self.file = file
-        self.sodictionary = self.sodictionarymaker(
-            self.file
-        )  # list that can be meddled with
-        self._sodictionary = self.sodictionarymaker(
-            self.file
-        )  # list that can't be meddled with
+        self.board = self.sodictionarymaker(self.file)
+        self._board = copy.deepcopy(self.board)
         self.make_possible_solutions()  # determines the inital possible_solutions for each element in mutable list, can be run after every solved number
-        self.unsolved = self.unsolvedd(
-            self.sodictionary
-        )  # creates initial mutable list of unsolved fields, also updatable after each iteration
+        self.unsolved = self.unsolvedd()  # creates initial mutable list of unsolved fields, also updatable after each iteration
         self.solved = []  # container for what has been solved
         self.frontier = []
 
@@ -27,103 +23,81 @@ class Board:
             for c, row in enumerate(reader):
                 ri = []
                 for cc, element in enumerate(row):
-                    square = self.whichsquare(c, cc)
-                    ri.append(
-                        {
-                            "value": int(element),
-                            "row": int(c),
-                            "column": int(cc),
-                            "square": int(square),
-                            "possible_solutions": [],
-                            "tried": set(),
-                        }
-                    )
+                    ri.append(Field(element,c,cc,self.whichsquare(c,cc)))
                 sodictionary.append(ri)
         return sodictionary  # returns a list of dictionaries
-
-    def square(self, row, column):  # returns list of values for square in question
-        square = self.whichsquare(
-            row, column
-        )  # determines square where value in question is located
+    
+    def whichsquare(self, row, column):  # detirmes which of the 9 squares a cell is based in, based on row and colummn input
+        square_row = (row// 3) * 3
+        square_column = (column // 3) * 3
+        return square_row // 3 * 3 + square_column // 3
+    
+    def square(self, square):  # returns list of values for square in question
         thisSlist = []
-        for element in self.sodictionary:
-            for row in element:  # loops through all listed dictionaries
+        for row in self.board:
+            for item in row:  # loops through all listed dictionaries
                 if (
-                    row["square"] == square
+                    item.square == square
                 ):  # checks if number ist part of square in question
-                    thisSlist.append(row["value"])
+                    thisSlist.append(item.value)
         return thisSlist
 
     def column(self, column):
         # returns a list of all the numbers in a given column
-        return [row[column]["value"] for row in self.sodictionary]
+        return [row[column].value for row in self.board]
 
     def row(self, row):
         # returns a list of all the numbers in a given row
-        return [element["value"] for element in self.sodictionary[row]]
+        return [element.value for element in self.board[row]]
 
-    def unsolvedd(self, dictlist):
+    def unsolvedd(self):
         # returns a list of all the currently unsolved cells, in listed dictionaries
         return [
-            {
-                "row": item["row"],
-                "column": item["column"],
-                "square": item["square"],
-                "possible_solutions": item["possible_solutions"],
-                "tried": item["tried"],
-            }
-            for element in dictlist
-            for item in element
-            if item["value"] == 0
+            item
+            for row in self.board
+            for item in row
+            if item.value == 0
         ]
-
-    def whichsquare(
-        self, row, column
-    ):  # detirmes which of the 9 squares a cell is based in, based on row and colummn input
-        square_row = (row // 3) * 3
-        square_column = (column // 3) * 3
-        return square_row // 3 * 3 + square_column // 3
 
     def make_possible_solutions(
         self,
     ):  # iterates over a given list of listed dictionaries and redetermines all the possibillities for each empty square
         numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]  # all sudoku numbers
 
-        for row in self.sodictionary:
-            for dict in row:
-                a = dict["row"]
-                b = dict["column"]
+        for row in self.board:
+            for cell in row:
+                a = cell.row
+                b = cell.column
                 possible_solutions = list(
                     set(numbers)   # subtracts all the possible sudoku numbers from sets of the cells row, column and square
                     - set(self.row(a))
                     - set(self.column(b))
-                    - set(self.square(a, b))
+                    - set(self.square(cell.square))
                 )
 
-                dict["possible_solutions"] = possible_solutions  # appends updated possible_solutions onto each field
+                cell.options = possible_solutions  # appends updated possible_solutions onto each field
 
     def update(self, row, column, value):
         # use this to change specific cells of the board, automatically regenerates new possible_solutions for every cell
-        self.sodictionary[row][column]["value"] = value
-        self.sodictionary[row][column]["tried"].add(value)
+        self.board[row][column].value = value
         self.make_possible_solutions()
-        self.unsolved = self.unsolvedd(self.sodictionary)
+        self.unsolved = self.unsolvedd()
 
     def nukeexplored(self, row, column):
         # resets the initial unsolved fields that succed a cell, inputted via row, column
         for node in self.solved:
-            drow, dcolumn = node["row"], node["column"]
+            drow, dcolumn = node.row, node.column
             if drow == row:
                 if dcolumn > column:
-                    self.sodictionary[drow][dcolumn]["value"] = 0
+                    self.board[drow][dcolumn].value = 0
             elif drow > row:
-                self.sodictionary[drow][dcolumn]["value"] = 0
+                self.board[drow][dcolumn].value = 0
         for e, node in enumerate(self.solved):
-            if node["row"] == row:
-                if node["column"] >= column:
+            if node.row == row:
+                if node.column >= column:
                     del self.solved[e:]
                     break
-            elif node["row"] > row:
+            elif node.row > row:
                 del self.solved[e:]
 
     def printboard(self, aspect="value"):
@@ -132,7 +106,7 @@ class Board:
         GREEN = fg("green")
         RED = fg("red")
         RESET = attr("reset")
-        board = [[item[f"{aspect}"] for item in row] for row in self.sodictionary]
+        board = [[item.value for item in row] for row in self.board]
         horz = f"{RED}═════════════{RESET}"
         vert = f"{RED}║{RESET}"
         cross = f"{RED}╬{RESET}"
@@ -143,7 +117,7 @@ class Board:
             print(vert, space, vert, space, vert, space, vert)
             print(vert, end="")
             for e, number in enumerate(row):
-                if int(self._sodictionary[i][e]["value"]) == 0:
+                if int(self._board[i][e].value) == 0:
                     print(f"{GREEN}  {number}  {RESET}", end="")
                 else:
                     print(f"  {number}  ", end="")
@@ -159,13 +133,34 @@ class Board:
     def save(self):
         with open("saved_sudoku.csv", "w") as board:
             writer = csv.writer(board)
-            for row in self.sodictionary:
-                writer.writerow([item["value"] for item in row])
+            for row in self.board:
+                writer.writerow([item.value for item in row])
+
+class Field:
+    def __init__(self, value, row, column, square, options = None):
+        self.value = int(value)  
+        self.row = int(row)     
+        self.column = int(column)      
+        self.square = square 
+        self.options = options  
+    
 
 
+def timeit(func):
+    @wraps(func)
+    def timeit_wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        print(f'Function {func.__name__} Took {total_time:.4f} seconds')
+        return result
+    return timeit_wrapper
 
 def main():
-    sudoku = Board(getsudoku())
+    sudoku = Board("sudoku.csv")
+    solve(sudoku).printboard()
+    """
     while len(sudoku.unsolved) != 0:
         if check_correctness(sudoku):
             solve(sudoku).printboard()
@@ -173,7 +168,7 @@ def main():
         else:
             print("Specified Sudoku Board didn't add up, try again")
             sudoku = Board(getsudoku())
-
+    """
 
 def getsudoku():
     rows = 1
@@ -190,7 +185,7 @@ def getsudoku():
             print(f"incorrect Row input, try again row{row}")
     return "sudoku2.csv"
 
-
+@timeit
 def solve(sudoku):
     """
     Solves a given sudoku puzzle and returns the solved sudoku object.
@@ -204,12 +199,12 @@ def solve(sudoku):
     """
     unsolved_length = len(sudoku.unsolved)
     while len(sudoku.solved) < unsolved_length:  # Loops through whole sudoku
-        for i, row in enumerate(sudoku.sodictionary):
+        for i, row in enumerate(sudoku.board):
             for e, field in enumerate(row):
-                if field["value"] == 0:
+                if field.value == 0:
                     if nodes(sudoku, i, e):
                         node = sudoku.frontier.pop()
-                        sudoku.update(i, e, node["value"])
+                        sudoku.update(i, e, node.value)
                         sudoku.solved.append(node)
                         flag = True
                         break
@@ -218,8 +213,8 @@ def solve(sudoku):
                             altnode = sudoku.frontier.pop()
                         except IndexError:
                             raise IndexError("No Possible Solution, perhaps check your input")
-                        lastrow, lastcolumn = altnode["row"], altnode["column"]
-                        altvalue = altnode["value"]
+                        lastrow, lastcolumn = altnode.row, altnode.column
+                        altvalue = altnode.value
                         sudoku.nukeexplored(lastrow, lastcolumn)
                         sudoku.update(lastrow, lastcolumn, altvalue)
                         sudoku.solved.append(altnode)
@@ -235,13 +230,9 @@ def solve(sudoku):
 def nodes(sudoku, row, column):
     nodeslist = []
     # optionen = list(set(sudoku.sodictionary[row][column]["possible_solutions"]) - set(sudoku.sodictionary[row][column]["tried"]))
-    if len(sudoku.sodictionary[row][column]["possible_solutions"]) > 0:
-        for option in sudoku.sodictionary[row][column]["possible_solutions"]:
-            possibility = {
-                "value": option,
-                "row": row,
-                "column": column,
-            }
+    if len(sudoku.board[row][column].options) > 0:
+        for option in sudoku.board[row][column].options:
+            possibility = Field(option, row, column,sudoku.board[row][column].square) 
             nodeslist.insert(0, possibility)
         sudoku.frontier.extend(nodeslist)
         return True
@@ -249,19 +240,18 @@ def nodes(sudoku, row, column):
         return False
 
 def check_correctness(sudoku):
-    for row in sudoku.sodictionary:
+    for row in sudoku.board:
         for item in row:
-            if len(item["possible_solutions"]) == 0 and item["value"] == 0:
+            if len(item.options) == 0 and item.value == 0:
                 return False
     for i in range(9):
         for value in sudoku.row(i):
             if value != 0 and sudoku.row(i).count(value)>1:
                 return False
     for i in range(9):
-        for e in range(9):
-            for value in sudoku.square(i,e):
-                if value != 0 and sudoku.square(i,e).count(value)>1:
-                    return False
+        for value in sudoku.square(i):
+            if value != 0 and sudoku.square(i).count(value)>1:
+                return False
     for i in range(9):
         for value in sudoku.column(i):
             if value != 0 and sudoku.column(i).count(value)>1:
