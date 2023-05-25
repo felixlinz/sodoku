@@ -7,7 +7,7 @@ import time
 class Board:
     def __init__(self, file):
         self.file = file
-        self.board = self.sodictionarymaker(self.file)
+        self.board = self.boardmaker(self.file)
         self.boardlist = self.delist(self.board)
         self._board = copy.deepcopy(self.board)
         self.make_possible_solutions()  # determines the inital possible_solutions for each element in mutable list, can be run after every solved number
@@ -22,18 +22,17 @@ class Board:
         return nonestlist
 
 
-    def sodictionarymaker(
-        self, file
-    ):  # reads csv file of unsolved sudoku, creates list, listed dicts or list of listed dicts
-        sodictionary = []  # creating containers for all use cases
+    def boardmaker(self, file):  
+        # reads csv file of unsolved sudoku, creates list, listed dicts or list of listed dicts
+        board = []  # creating containers for all use cases
         with open(file, "r") as rowfield:
             reader = csv.reader(rowfield)
             for c, row in enumerate(reader):
                 ri = []
                 for cc, element in enumerate(row):
                     ri.append(Cell(element,c,cc,self.whichsquare(c,cc)))
-                sodictionary.append(ri)
-        return sodictionary  # returns a list of dictionaries
+                board.append(ri)
+        return board  # returns a list of dictionaries
     
     def whichsquare(self, row, column):  # detirmes which of the 9 squares a cell is based in, based on row and colummn input
         square_row = (row// 3) * 3
