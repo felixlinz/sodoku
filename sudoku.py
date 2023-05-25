@@ -31,7 +31,7 @@ class Board:
             for c, row in enumerate(reader):
                 ri = []
                 for cc, element in enumerate(row):
-                    ri.append(Field(element,c,cc,self.whichsquare(c,cc)))
+                    ri.append(Cell(element,c,cc,self.whichsquare(c,cc)))
                 sodictionary.append(ri)
         return sodictionary  # returns a list of dictionaries
     
@@ -138,7 +138,7 @@ class Board:
         print(f"{RED}╚═══════════════╩═══════════════╩═══════════════╝{RESET}")
 
                 
-class Field:
+class Cell:
     def __init__(self, value, row, column, square, options = None):
         self.value = int(value)  
         self.row = int(row)     
@@ -246,7 +246,7 @@ def nodes(sudoku, row, column):
     if len(sudoku.board[row][column].options) > 0:
         # checking for length is significantly quicker that checking with logic for some reason
         for option in sudoku.board[row][column].options:
-            possibility = Field(option, row, column,sudoku.board[row][column].square) 
+            possibility = Cell(option, row, column,sudoku.board[row][column].square) 
             nodeslist.insert(0, possibility)
         sudoku.frontier.extend(nodeslist)
         return True
