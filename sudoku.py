@@ -8,11 +8,19 @@ class Board:
     def __init__(self, file):
         self.file = file
         self.board = self.sodictionarymaker(self.file)
+        self.boardlist = self.delist(self.board)
         self._board = copy.deepcopy(self.board)
         self.make_possible_solutions()  # determines the inital possible_solutions for each element in mutable list, can be run after every solved number
         self.unsolved = self.unsolvedd()  # creates initial mutable list of unsolved fields, also updatable after each iteration
         self.solved = []  # container for what has been solved
         self.frontier = []
+
+    def delist(self, board):
+        nonestlist = []
+        for row in board:
+            nonestlist.extend(row)
+        return nonestlist
+
 
     def sodictionarymaker(
         self, file
@@ -34,12 +42,12 @@ class Board:
     
     def square(self, square):  # returns list of values for square in question
         thisSlist = []
-        for row in self.board:
-            for item in row:  # loops through all listed dictionaries
-                if (
-                    item.square == square
-                ):  # checks if number ist part of square in question
-                    thisSlist.append(item.value)
+        for cell in self.boardlist:
+                # loops through all listed dictionaries
+            if (
+                cell.square == square
+            ):  # checks if number ist part of square in question
+                thisSlist.append(cell.value)
         return thisSlist
 
     def column(self, column):
@@ -86,12 +94,11 @@ class Board:
     def nukeexplored(self, row, column):
         # resets the initial unsolved fields that succed a cell, inputted via row, column
         for node in self.solved:
-            drow, dcolumn = node.row, node.column
-            if drow == row:
-                if dcolumn > column:
-                    self.board[drow][dcolumn].value = 0
-            elif drow > row:
-                self.board[drow][dcolumn].value = 0
+            if node.row == row:
+                if node.column > column:
+                    self.board[node.row][node.column].value = 0
+            elif node.row > row:
+                self.board[node.row][node.column].value = 0
         for e, node in enumerate(self.solved):
             if node.row == row:
                 if node.column >= column:
@@ -100,7 +107,7 @@ class Board:
             elif node.row > row:
                 del self.solved[e:]
 
-    def printboard(self, aspect="value"):
+    def printboard(self):
         # prints the board, if you don't intend to print the values of the cell,
         # you can specify the aspect as "square", "row", "column", "possible_solutions" or "tried"
         GREEN = fg("green")
@@ -130,12 +137,7 @@ class Board:
         print(vert, space, vert, space, vert, space, vert)
         print(f"{RED}╚═══════════════╩═══════════════╩═══════════════╝{RESET}")
 
-    def save(self):
-        with open("saved_sudoku.csv", "w") as board:
-            writer = csv.writer(board)
-            for row in self.board:
-                writer.writerow([item.value for item in row])
-
+                
 class Field:
     def __init__(self, value, row, column, square, options = None):
         self.value = int(value)  
@@ -157,10 +159,12 @@ def timeit(func):
         return result
     return timeit_wrapper
 
+@timeit
+def creation(filename):
+    return Board(filename)
+
 def main():
-    sudoku = Board("sudoku.csv")
-    solve(sudoku).printboard()
-    """
+    sudoku = creation("sudoku.csv")
     while len(sudoku.unsolved) != 0:
         if check_correctness(sudoku):
             solve(sudoku).printboard()
@@ -168,9 +172,12 @@ def main():
         else:
             print("Specified Sudoku Board didn't add up, try again")
             sudoku = Board(getsudoku())
-    """
 
 def getsudoku():
+    """
+    asks the user for input and creates an 
+    iterable csv file representing the sudoku
+    """
     rows = 1
     print("Input Row by Row, replace empty fields with Zeroes or Whitespace")
     open("sudoku2.csv", "w")
@@ -188,38 +195,40 @@ def getsudoku():
 @timeit
 def solve(sudoku):
     """
-    Solves a given sudoku puzzle and returns the solved sudoku object.
+    Solves a given sudoku puzzle and returns the solved sudoku object
+    using depth first search
 
     Args:
         sudoku (Sudoku): A Sudoku object to be solved.
 
     Returns:
-        Sudoku: The solved Sudoku object.
+        Sudoku: The solved Sudoku object if there is a possible solution
 
     """
     unsolved_length = len(sudoku.unsolved)
+    sudoku.unsolved.sort(key = lambda x: len(x.options))
     while len(sudoku.solved) < unsolved_length:  # Loops through whole sudoku
-        for i, row in enumerate(sudoku.board):
-            for e, field in enumerate(row):
-                if field.value == 0:
-                    if nodes(sudoku, i, e):
-                        node = sudoku.frontier.pop()
-                        sudoku.update(i, e, node.value)
-                        sudoku.solved.append(node)
-                        flag = True
-                        break
-                    else:
-                        try:
-                            altnode = sudoku.frontier.pop()
-                        except IndexError:
-                            raise IndexError("No Possible Solution, perhaps check your input")
-                        lastrow, lastcolumn = altnode.row, altnode.column
-                        altvalue = altnode.value
-                        sudoku.nukeexplored(lastrow, lastcolumn)
-                        sudoku.update(lastrow, lastcolumn, altvalue)
-                        sudoku.solved.append(altnode)
-                        flag = True
-                        break
+        for cell in sudoku.unsolved:
+            if cell.value == 0:
+                if nodes(sudoku, cell.row, cell.column):
+                    node = sudoku.frontier.pop()
+                    sudoku.update(node.row, node.column, node.value)
+                    sudoku.solved.append(node)
+                    flag = True
+                    break
+                else:
+                    try:
+                        # in case the previous try has run into a dead end, this explores an 
+                        # alternative to the last picked option
+                        altnode = sudoku.frontier.pop()
+                    except IndexError:
+                        raise IndexError("No Possible Solution, perhaps check your input")
+                    # deletes everything that had been filled in post the step we check out
+                    sudoku.nukeexplored(altnode.row, altnode.column)
+                    sudoku.update(altnode.row, altnode.column, altnode.value)
+                    sudoku.solved.append(altnode)
+                    flag = True
+                    break
             if flag:
                 flag = False
                 break
@@ -228,9 +237,14 @@ def solve(sudoku):
 
 
 def nodes(sudoku, row, column):
+    """
+    checks if there are any options where they are supposed to be
+
+    if so, returns true and extends end of frontier 
+    """
     nodeslist = []
-    # optionen = list(set(sudoku.sodictionary[row][column]["possible_solutions"]) - set(sudoku.sodictionary[row][column]["tried"]))
     if len(sudoku.board[row][column].options) > 0:
+        # checking for length is significantly quicker that checking with logic for some reason
         for option in sudoku.board[row][column].options:
             possibility = Field(option, row, column,sudoku.board[row][column].square) 
             nodeslist.insert(0, possibility)
