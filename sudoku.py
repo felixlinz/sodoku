@@ -161,7 +161,6 @@ class Board:
         print(vert, space, vert, space, vert, space, vert)
         print(f"{RED}╚═══════════════╩═══════════════╩═══════════════╝{RESET}")
 
-                
 class Cell:
     """
     Object in which all the Data regarding a single cell is stored
