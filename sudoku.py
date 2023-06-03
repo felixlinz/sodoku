@@ -167,10 +167,18 @@ class Cell:
     """
     def __init__(self, value, row, column, square, options = None):
         self.value = int(value)  
-        self.row = int(row)     
-        self.column = int(column)      
+        self._row = int(row)     
+        self._column = int(column)      
         self.square = square 
         self.options = options  
+    
+    @property
+    def row(self):
+        return self._row
+    
+    @property
+    def column(self):
+        return self._column
     
 
 
