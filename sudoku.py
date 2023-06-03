@@ -86,7 +86,7 @@ class Board:
         iterates over a given list of listed Cells and 
         redetermines all the possibillities for each empty square
         """
-        numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]  # all sudoku numbers
+        numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9] # all sudoku numbers
 
         for row in self.board:
             for cell in row:
@@ -237,8 +237,8 @@ def solve(sudoku):
 
     """
     unsolved_length = len(sudoku.unsolved)
-    # sorts the order in which the algo explores the states by length of options
-    sudoku.unsolved.sort(key = lambda x: len(x.options))
+    # sorts the order in which the algo explores the states by reversed length of options
+    sudoku.unsolved.sort(key = lambda x: len(x.options), reverse = True)
     while len(sudoku.solved) < unsolved_length:  # Loops through whole sudoku
         for cell in sudoku.unsolved:
             if cell.value == 0:
