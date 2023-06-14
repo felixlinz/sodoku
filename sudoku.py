@@ -36,7 +36,10 @@ class Board:
             for c, row in enumerate(reader):
                 ri = []
                 for cc, element in enumerate(row):
-                    ri.append(Cell(element,c,cc,self.whichsquare(c,cc)))
+                    if int(element) != 0:
+                        ri.append(Solved_Cell(element,c,cc,self.whichsquare(c,cc)))
+                    else:
+                        ri.append(Unsolved_Cell(element,c,cc,self.whichsquare(c,cc)))
                 board.append(ri)
         return board  # returns a list of dictionaries
     
@@ -161,25 +164,33 @@ class Board:
         print(vert, space, vert, space, vert, space, vert)
         print(f"{RED}╚═══════════════╩═══════════════╩═══════════════╝{RESET}")
 
-class Cell:
+class Solved_Cell:
     """
     Object in which all the Data regarding a single cell is stored
     """
     def __init__(self, value, row, column, square, options = None):
-        self.value = int(value)  
+        self._value = int(value)  
         self._row = int(row)     
         self._column = int(column)      
         self.square = square 
         self.options = options  
-    
+
     @property
     def row(self):
         return self._row
-    
+
     @property
     def column(self):
         return self._column
-    
+
+    @property
+    def value(self):
+        return self._value
+
+class Unsolved_Cell(Solved_Cell):
+    @Solved_Cell.value.setter
+    def value(self, value):
+        self._value = int(value)
 
 
 def timeit(func):
@@ -195,7 +206,7 @@ def timeit(func):
 
 
 def main():
-    sudoku = Board("sudoku2.csv")
+    sudoku = Board("sudoku.csv")
     while len(sudoku.unsolved) != 0:
         if check_correctness(sudoku):
             solve(sudoku).printboard()
@@ -278,7 +289,7 @@ def nodes(sudoku, row, column):
     if len(sudoku.board[row][column].options) > 0:
         # checking for length is significantly quicker than checking with logic for some reason
         for option in sudoku.board[row][column].options:
-            possibility = Cell(option, row, column,sudoku.board[row][column].square) 
+            possibility = Unsolved_Cell(option, row, column,sudoku.board[row][column].square) 
             # don't remember why but this is very important
             # figure out at pleeaaase
             nodeslist.insert(0, possibility)
