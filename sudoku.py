@@ -55,23 +55,19 @@ class Board:
         """
         returns list of values for square in question
         """
-        whole_square = []
-        for cell in self.boardlist:
-            if (cell.square == square):  
-                whole_square.append(cell.value)
-        return whole_square
+        return {cell.value for cell in self.boardlist if cell.square == square}
 
     def column(self, column):
         """
         returns a list of all the values in a given column
         """
-        return [row[column].value for row in self.board]
+        return {row[column].value for row in self.board}
 
     def row(self, row):
         """
         returns a list of all the values in a given row
         """
-        return [element.value for element in self.board[row]]
+        return {element.value for element in self.board[row]}
 
     def unsolvedd(self):
         """
@@ -95,12 +91,13 @@ class Board:
             for cell in row:
                 a = cell.row
                 b = cell.column
-                possible_solutions = list(
-                    sudoku_numbers   # subtracts all the possible sudoku numbers from sets of the cells row, column and square
+                possible_solutions = sudoku_numbers - self.row(a) - self.column(b) - self.square(cell.square)
+                """
+                    sudoku_numbers   
                     - set(self.row(a))
                     - set(self.column(b))
                     - set(self.square(cell.square))
-                )
+                """
 
                 cell.options = possible_solutions  # appends updated possible_solutions onto each field
 
@@ -167,13 +164,13 @@ class Board:
 class Solved_Cell:
     """
     Object in which all the Data regarding a single cell is stored
+    Completely immutable
     """
-    def __init__(self, value, row, column, square, options = None):
+    def __init__(self, value, row, column, square):
         self._value = int(value)  
         self._row = int(row)     
         self._column = int(column)      
         self.square = square 
-        self.options = options  
 
     @property
     def row(self):
@@ -188,10 +185,21 @@ class Solved_Cell:
         return self._value
 
 class Unsolved_Cell(Solved_Cell):
+    def __init__(self, value, row, column, square, options = None):
+        super().__init__(value, row, column, square)
+        self._options = options
+
     @Solved_Cell.value.setter
     def value(self, value):
         self._value = int(value)
 
+    @property
+    def options(self):
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        self._options = new_options
 
 def timeit(func):
     @wraps(func)
@@ -286,7 +294,7 @@ def nodes(sudoku, row, column):
     if so, returns true and extends end of frontier 
     """
     nodeslist = []
-    if len(sudoku.board[row][column].options) > 0:
+    if sudoku.board[row][column].options:
         # checking for length is significantly quicker than checking with logic for some reason
         for option in sudoku.board[row][column].options:
             possibility = Unsolved_Cell(option, row, column,sudoku.board[row][column].square) 
@@ -301,6 +309,7 @@ def nodes(sudoku, row, column):
 def check_correctness(sudoku):
     """
     checks if an inputted Sudoku adds up 
+    """
     """
     for row in sudoku.board:
         for item in row:
@@ -323,6 +332,7 @@ def check_correctness(sudoku):
         for value in sudoku.column(i):
             if value != 0 and sudoku.column(i).count(value)>1:
                 return False
+    """
     return True
 
 
