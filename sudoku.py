@@ -310,29 +310,12 @@ def check_correctness(sudoku):
     """
     checks if an inputted Sudoku adds up 
     """
-    """
     for row in sudoku.board:
         for item in row:
             # if something is unsolved and has no possible solution 
             # returns false
             if len(item.options) == 0 and item.value == 0:
                 return False
-    for i in range(9):
-        # if a value exists more than once in a row
-        for value in sudoku.row(i):
-            if value != 0 and sudoku.row(i).count(value)>1:
-                return False
-    for i in range(9):
-        # if a value exists more than once in a square
-        for value in sudoku.square(i):
-            if value != 0 and sudoku.square(i).count(value)>1:
-                return False
-    for i in range(9):
-        # if a value exists more than once in a column
-        for value in sudoku.column(i):
-            if value != 0 and sudoku.column(i).count(value)>1:
-                return False
-    """
     return True
 
 
