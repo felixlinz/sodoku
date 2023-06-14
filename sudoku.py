@@ -86,14 +86,14 @@ class Board:
         iterates over a given list of listed Cells and 
         redetermines all the possibillities for each empty square
         """
-        numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9] # all sudoku numbers
+        sudoku_numbers = set(range(1,10)) # all sudoku numbers
 
         for row in self.board:
             for cell in row:
                 a = cell.row
                 b = cell.column
                 possible_solutions = list(
-                    set(numbers)   # subtracts all the possible sudoku numbers from sets of the cells row, column and square
+                    sudoku_numbers   # subtracts all the possible sudoku numbers from sets of the cells row, column and square
                     - set(self.row(a))
                     - set(self.column(b))
                     - set(self.square(cell.square))
@@ -195,7 +195,7 @@ def timeit(func):
 
 
 def main():
-    sudoku = Board("sudoku.csv")
+    sudoku = Board("sudoku2.csv")
     while len(sudoku.unsolved) != 0:
         if check_correctness(sudoku):
             solve(sudoku).printboard()
