@@ -257,7 +257,7 @@ def solve(sudoku):
     """
     unsolved_length = len(sudoku.unsolved)
     # sorts the order in which the algo explores the states by reversed length of options
-    sudoku.unsolved.sort(key = lambda x: len(x.options), reverse = True)
+    # sudoku.unsolved.sort(key = lambda x: len(x.options), reverse = True)
     while len(sudoku.solved) < unsolved_length:  # Loops through whole sudoku
         for cell in sudoku.unsolved:
             if cell.value == 0:
